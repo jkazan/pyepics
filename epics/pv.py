@@ -136,11 +136,11 @@ class PV(object):
             ca.use_initial_context()
         self.context = ca.current_context()
 
-        self._args['chid'] = ca.create_channel(self.pvname,
-                                               callback=self.__on_connect)
-        self.chid = self._args['chid']
-        ca.replace_access_rights_event(self.chid,
-                                       callback=self.__on_access_rights_event)
+        self.chid = ca.create_channel(self.pvname,
+                                      callback=self.__on_connect,
+                                      access_callback=self.__on_access_rights_event)
+
+        self._args['chid'] = self.chid
         self.ftype  = ca.promote_type(self.chid,
                                       use_ctrl= self.form == 'ctrl',
                                       use_time= self.form == 'time')
@@ -167,7 +167,7 @@ class PV(object):
         self._args['read_access'] = (1 == ca.read_access(self.chid))
         self._args['write_access'] = (1 == ca.write_access(self.chid))
 
-    def __on_access_rights_event(self, read_access, write_access):
+    def __on_access_rights_event(self, read_access, write_access, **kws):
         self._args['read_access'] = read_access
         self._args['write_access'] = write_access
 
