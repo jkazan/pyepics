@@ -819,8 +819,7 @@ def test_io():
 
 ## create channel
 @withCA
-def create_channel(pvname, connect=False, auto_cb=True, callback=None,
-                   access_callback=None):
+def create_channel(pvname, connect=False, auto_cb=True, callback=None):
     """ create a Channel for a given pvname
 
     creates a channel, returning the Channel ID ``chid`` used by other
@@ -837,9 +836,6 @@ def create_channel(pvname, connect=False, auto_cb=True, callback=None,
     callback : callable or ``None``
         user-defined Python function to be called when the connection
         state changes.
-    access_callback : callable or ``None``
-        user-defined Python function to be called when the access
-        rights change.
 
     Returns
     -------
@@ -883,7 +879,7 @@ def create_channel(pvname, connect=False, auto_cb=True, callback=None,
     if pvname not in _cache[ctx]: # new PV for this context
         entry = {'conn':False,  'chid': None,
                  'ts': 0,  'failures':0, 'value': None,
-                 'access_callbacks': [access_callback],
+                 'access_callbacks': [],
                  'callbacks': [callback]}
         # logging.debug("Create Channel %s " % pvname)
         _cache[ctx][pvname] = entry
@@ -907,10 +903,6 @@ def create_channel(pvname, connect=False, auto_cb=True, callback=None,
                                       ctypes.byref(chid))
         PySEVCHK('create_channel', ret)
         entry['chid'] = chid
-
-        acc = libca.ca_replace_access_rights_event(chid, _CB_ACCESS)
-        PySEVCHK('replace_access_rights_event', acc)
-
 
     chid_key = chid
     if isinstance(chid_key, dbr.chid_t):
@@ -985,21 +977,18 @@ def connect_channel(chid, timeout=None, verbose=False):
 @withCHID
 def replace_access_rights_event(chid, callback=None):
     """
-    replace_access_rights_event() now only adds a
-    callback for access events that will be called
-    by the internal onAccessRightsEvents CA connection.
+    replace_access_rights_event() adds a callback for access
+    events that will be called by the internal
+    onAccessRightsEvents CA connection.
     """
     global _cache
 
     ch = _cache[current_context()][name(chid)]
-    if 'access_callbacks' not in ch:
-        ch['access_callbacks'] = []
+    if len(ch['access_callbacks']) == 0:
+        ret = libca.ca_replace_access_rights_event(chid, _CB_ACCESS)
+        PySEVCHK('replace_access_rights_event', ret)
 
-    if callable(callback):
-        ch['access_callbacks'].append(callback)
-
-    ret = libca.ca_replace_access_rights_event(chid, _CB_ACCESS)
-    PySEVCHK('replace_access_rights_event', ret)
+    ch['access_callbacks'].append(callback)
 
 
 @withCHID

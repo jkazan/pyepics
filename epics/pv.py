@@ -137,10 +137,11 @@ class PV(object):
         self.context = ca.current_context()
 
         self.chid = ca.create_channel(self.pvname,
-                                      callback=self.__on_connect,
-                                      access_callback=self.__on_access_rights_event)
-
+                                      callback=self.__on_connect)
         self._args['chid'] = self.chid
+        ca.replace_access_rights_event(self.chid,
+                                       callback=self.__on_access_rights_event)
+
         self.ftype  = ca.promote_type(self.chid,
                                       use_ctrl= self.form == 'ctrl',
                                       use_time= self.form == 'time')
